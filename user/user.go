@@ -4,6 +4,7 @@ type User struct {
 	ID         string `json:"ID"`
 	Username   string `json:"username"`
 	Password   string `json:"password"`
+	Auth       string `json:"auth"`
 	Followings []string
 	Followers  []string
 }

@@ -1,10 +1,12 @@
 package db
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
 	"github.com/go-redis/redis"
+	gouuid "github.com/satori/go.uuid"
 )
 
 var rdb *redis.Client
@@ -30,7 +32,7 @@ func init() {
 func RegisterUser(usr user) (string, error) {
 	var err error
 	_, username, password := usr.Info()
-	_, err = isExists(username)
+	_, err = checkUsername(username)
 	if err != nil {
 		return "", err
 	}
@@ -53,6 +55,28 @@ func RegisterUser(usr user) (string, error) {
 	err = rdb.Incr(lastIdC).Err()
 	checkErr(err)
 	return lastID, nil
+}
+
+func LogIn(username, password string) (string, error) {
+	var err error
+	id, err := checkUsername(username)
+	if err != nil {
+		return "", err
+	}
+	err = checkPassword(id, password)
+	if err != nil {
+		return "", err
+	}
+	uuid := gouuid.NewV4().String()
+	err = rdb.HSet("user:"+id, "auth", uuid).Err()
+	if err != nil {
+		return "", err
+	}
+	err = rdb.HSet("auths", uuid, id).Err()
+	if err != nil {
+		return "", err
+	}
+	return uuid, nil
 }
 
 func Follow(follower, followed string) error {
@@ -88,12 +112,20 @@ func Post(post, id string) error {
 	return nil
 }
 
-func isExists(username string) (string, error) {
+func checkUsername(username string) (string, error) {
 	id, _ := rdb.HGet(usersMapC, username).Result()
 	if id != "" {
 		return "", fmt.Errorf("user \"%v\" already exists", username)
 	}
 	return id, nil
+}
+
+func checkPassword(id, password string) error {
+	pass, _ := rdb.HGet("user:"+id, passwordC).Result()
+	if pass != password {
+		return errors.New("invalid password")
+	}
+	return nil
 }
 
 func checkErr(err error) {
