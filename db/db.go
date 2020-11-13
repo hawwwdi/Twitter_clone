@@ -1,6 +1,10 @@
 package db
 
-import "github.com/go-redis/redis"
+import (
+	"time"
+
+	"github.com/go-redis/redis"
+)
 
 var rdb *redis.Client
 
@@ -22,7 +26,7 @@ func init() {
 	checkErr(err)
 }
 
-func AddUser(usr user) error {
+func RegisterUser(usr user) error {
 	var err error
 	_, username, password := usr.info()
 	lastID, err := rdb.Get(lastIdC).Result()
@@ -44,6 +48,23 @@ func AddUser(usr user) error {
 	err = rdb.Incr(lastIdC).Err()
 	checkErr(err)
 	return nil
+}
+
+func Follow(follower, followed string) error {
+	var err error
+	currentTime := float64(time.Now().Unix())
+	_, err = rdb.ZAdd("following:"+follower, redis.Z{
+		Score:  currentTime,
+		Member: followed,
+	}).Result()
+	if err != nil {
+		return err
+	}
+	_, err = rdb.ZAdd("follower:"+followed, redis.Z{
+		Score:  currentTime,
+		Member: follower,
+	}).Result()
+	return err
 }
 
 func checkErr(err error) {
