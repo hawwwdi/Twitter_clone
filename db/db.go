@@ -40,7 +40,7 @@ func RegisterUser(usr user) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	usr.SetId(id)
+	usr.SetId(lastID)
 	err = rdb.HSet(usersMapC, username, lastID).Err()
 	if err != nil {
 		return "", err
