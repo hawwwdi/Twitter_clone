@@ -1,17 +1,26 @@
 package user
 
-type user struct {
-	id        string
-	username  string
-	password  string
-	Following []int
-	Followers []int
+type User struct {
+	ID         string `json:"ID"`
+	Username   string `json:"username"`
+	Password   string `json:"password"`
+	Followings []string
+	Followers  []string
 }
 
-func (u *user) setId(id string) {
-	u.id = id
+func NewUser(username, password string) *User {
+	return &User{
+		Username:   username,
+		Password:   password,
+		Followings: make([]string, 0),
+		Followers:  make([]string, 0),
+	}
 }
 
-func (u *user) info() (string, string, string) {
-	return u.id, u.username, u.password
+func (u *User) SetId(id string) {
+	u.ID = id
+}
+
+func (u *User) Info() (string, string, string) {
+	return u.ID, u.Username, u.Password
 }

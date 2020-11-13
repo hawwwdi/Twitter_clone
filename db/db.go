@@ -26,28 +26,28 @@ func init() {
 	checkErr(err)
 }
 
-func RegisterUser(usr user) error {
+func RegisterUser(usr user) (string, error) {
 	var err error
-	_, username, password := usr.info()
+	_, username, password := usr.Info()
 	lastID, err := rdb.Get(lastIdC).Result()
 	checkErr(err)
 	id := "user:" + lastID
 	err = rdb.HSet(id, usernameC, username).Err()
 	if err != nil {
-		return err
+		return "", err
 	}
 	err = rdb.HSet(id, passwordC, password).Err()
 	if err != nil {
-		return err
+		return "", err
 	}
-	usr.setId(id)
+	usr.SetId(id)
 	err = rdb.HSet(usersMapC, username, lastID).Err()
 	if err != nil {
-		return err
+		return "", err
 	}
 	err = rdb.Incr(lastIdC).Err()
 	checkErr(err)
-	return nil
+	return lastID, nil
 }
 
 func Follow(follower, followed string) error {

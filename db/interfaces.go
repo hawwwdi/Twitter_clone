@@ -1,6 +1,6 @@
 package db
 
 type user interface {
-	info() (string, string, string)
-	setId(string)
+	Info() (string, string, string)
+	SetId(string)
 }
