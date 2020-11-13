@@ -3,6 +3,7 @@ package db
 import (
 	"errors"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/go-redis/redis"
@@ -32,9 +33,9 @@ func init() {
 func RegisterUser(usr user) (string, error) {
 	var err error
 	_, username, password := usr.Info()
-	_, err = checkUsername(username)
-	if err != nil {
-		return "", err
+	exists := checkUsername(username) != ""
+	if exists {
+		return "", fmt.Errorf("user %v already exists", username)
 	}
 	lastID, err := rdb.Get(lastIdC).Result()
 	checkErr(err)
@@ -59,9 +60,9 @@ func RegisterUser(usr user) (string, error) {
 
 func LogIn(username, password string) (string, error) {
 	var err error
-	id, err := checkUsername(username)
-	if err != nil {
-		return "", err
+	id := checkUsername(username)
+	if id == "" {
+		return "", fmt.Errorf("user %v does not exists", username)
 	}
 	err = checkPassword(id, password)
 	if err != nil {
@@ -112,17 +113,15 @@ func Post(post, id string) error {
 	return nil
 }
 
-func checkUsername(username string) (string, error) {
+func checkUsername(username string) string {
 	id, _ := rdb.HGet(usersMapC, username).Result()
-	if id != "" {
-		return "", fmt.Errorf("user \"%v\" already exists", username)
-	}
-	return id, nil
+	return id
 }
 
 func checkPassword(id, password string) error {
 	pass, _ := rdb.HGet("user:"+id, passwordC).Result()
 	if pass != password {
+		log.Printf("id==%v pass %v != %v\n", id, pass, password)
 		return errors.New("invalid password")
 	}
 	return nil
