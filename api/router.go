@@ -24,7 +24,7 @@ func signUp(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	newUser := user.NewUser(username, password)
 	_, err := db.RegisterUser(newUser)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
+		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
 	res, err := json.Marshal(newUser)

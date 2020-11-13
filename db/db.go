@@ -1,6 +1,7 @@
 package db
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/go-redis/redis"
@@ -29,6 +30,10 @@ func init() {
 func RegisterUser(usr user) (string, error) {
 	var err error
 	_, username, password := usr.Info()
+	_, err = isExists(username)
+	if err != nil {
+		return "", err
+	}
 	lastID, err := rdb.Get(lastIdC).Result()
 	checkErr(err)
 	id := "user:" + lastID
@@ -81,6 +86,14 @@ func Post(post, id string) error {
 		}
 	}
 	return nil
+}
+
+func isExists(username string) (string, error) {
+	id, _ := rdb.HGet(usersMapC, username).Result()
+	if id != "" {
+		return "", fmt.Errorf("user \"%v\" already exists", username)
+	}
+	return id, nil
 }
 
 func checkErr(err error) {
