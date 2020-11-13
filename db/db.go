@@ -53,18 +53,34 @@ func RegisterUser(usr user) error {
 func Follow(follower, followed string) error {
 	var err error
 	currentTime := float64(time.Now().Unix())
-	_, err = rdb.ZAdd("following:"+follower, redis.Z{
+	_, err = rdb.ZAdd("followings:"+follower, redis.Z{
 		Score:  currentTime,
 		Member: followed,
 	}).Result()
 	if err != nil {
 		return err
 	}
-	_, err = rdb.ZAdd("follower:"+followed, redis.Z{
+	_, err = rdb.ZAdd("followers:"+followed, redis.Z{
 		Score:  currentTime,
 		Member: follower,
 	}).Result()
 	return err
+}
+
+func Post(post, id string) error {
+	var err error
+	_, err = rdb.LPush("posts:"+id, post).Result()
+	followers, err := rdb.ZRevRange("followers:"+id, 0, -1).Result()
+	if err != nil {
+		return err
+	}
+	for _, follower := range followers {
+		_, err = rdb.LPush("posts:"+follower, post).Result()
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func checkErr(err error) {
