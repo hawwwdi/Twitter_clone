@@ -111,20 +111,38 @@ func Follow(follower, followed string) error {
 	return err
 }
 
-func Post(post, id string) error {
+func Post(body, owner string) error {
 	var err error
-	_, err = rdb.LPush("posts:"+id, post).Result()
-	followers, err := rdb.ZRevRange("followers:"+id, 0, -1).Result()
+	postID, err := rdb.Get(lastPostC).Result()
+	checkErr(err)
+	err = rdb.HSet("post:"+postID, "owner", owner).Err()
+	if err != nil {
+		return err
+	}
+	err = rdb.HSet("post:"+postID, "body", body).Err()
+	if err != nil {
+		return err
+	}
+	err = rdb.Incr(lastPostC).Err()
+	checkErr(err)
+	_, err = rdb.LPush("posts:"+owner, postID).Result()
+	//todo use concurrent pattern
+	followers, err := rdb.ZRevRange("followers:"+owner, 0, -1).Result()
 	if err != nil {
 		return err
 	}
 	for _, follower := range followers {
-		_, err = rdb.LPush("posts:"+follower, post).Result()
+		_, err = rdb.LPush("posts:"+follower, postID).Result()
 		if err != nil {
 			return err
 		}
 	}
-	return nil
+	err = rdb.LPush("timeline", postID).Err()
+	if err != nil {
+		return err
+	}
+	err = rdb.LTrim("timeline", 0, 100).Err()
+	return err
 }
 
 func removeSession(id string) error {
