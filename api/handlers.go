@@ -2,11 +2,16 @@ package api
 
 import (
 	"encoding/json"
+	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/julienschmidt/httprouter"
 )
+
+func index(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	w.Write([]byte("welcome"))
+}
 
 func signUp(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	username, password := r.FormValue("username"), r.FormValue("password")
@@ -16,13 +21,10 @@ func signUp(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	}
 	err := hub.db.RegisterUser(username, password)
 	if err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	/* 	res, err := json.Marshal(newUser)
-	   	if err != nil {
-	   		panic(err)
-	   	} */
+	log.Printf("  user: %v with password: %v signedUp\n", username, password)
 	http.Redirect(w, r, "/logIn", http.StatusSeeOther)
 }
 
@@ -37,6 +39,7 @@ func logIn(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	log.Printf("  user: %v logged in\n", username)
 	cookie := &http.Cookie{
 		Name:   "session",
 		Value:  uuid,
@@ -49,11 +52,13 @@ func logIn(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 
 func logOut(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	session, _ := getSession(r)
+	userID, _ := hub.db.GetSessionUserID(session)
 	err := hub.db.LogOut(session)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	log.Printf("  user: %v loggedOut\n", userID)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
@@ -71,6 +76,7 @@ func follow(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	log.Printf("  user: %v stated following user: %v\n", followerID, toFollow)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
@@ -87,6 +93,7 @@ func post(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	log.Printf(" user: %v posted post: %v\n", owner, body)
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
@@ -103,7 +110,9 @@ func showUserPosts(w http.ResponseWriter, r *http.Request, _ httprouter.Params) 
 	posts, err := hub.db.ShowUserPosts(id, start, count)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
 	}
+	log.Printf("user: %v requested for posts, start=%v count=%v\n", id, start, count)
 	res, _ := json.Marshal(posts)
 	w.Header()["Content-Type"] = []string{"application/json"}
 	w.Write(res)
@@ -116,9 +125,13 @@ func showTimeLinePosts(w http.ResponseWriter, r *http.Request, _ httprouter.Para
 		http.Error(w, err.Error(), http.StatusBadRequest)
 		return
 	}
+	session, _ := getSession(r)
+	id, _ := hub.db.GetSessionUserID(session)
+	log.Printf("  user: %v get the last %v timeline posts\n", id, count)
 	posts, _ := hub.db.ShowTimeLinePosts(count)
 	res, _ := json.Marshal(posts)
 	w.Header()["Content-Type"] = []string{"application/json"}
+	log.Println(string(res))
 	w.Write(res)
 }
 
