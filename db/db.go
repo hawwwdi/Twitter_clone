@@ -57,6 +57,10 @@ func (d *DB) Post(body, owner string) error {
 	return post(d.rdb, body, owner)
 }
 
+func (d *DB) ShowTimeLinePosts(count int) (map[string][]string, error) {
+	return showTimeLinePosts(d.rdb, int64(count))
+}
+
 func (d *DB) ShowUserPosts(id string, start, count int) (map[string][]string, error) {
 	return showUserPosts(d.rdb, id, int64(start), int64(count))
 }
@@ -168,6 +172,20 @@ func post(rdb *redis.Client, body, owner string) error {
 	}
 	err = rdb.LTrim("timeline", 0, 100).Err()
 	return err
+}
+
+func showTimeLinePosts(rdb *redis.Client, count int64) (map[string][]string, error) {
+	posts, err := rdb.LRange("timeline", 0, count).Result()
+	if err != nil {
+		return nil, err
+	}
+
+	postsMap := make(map[string][]string)
+	for _, post := range posts {
+		owner, body, _ := showPost(rdb, post)
+		postsMap[post] = []string{owner, body}
+	}
+	return postsMap, nil
 }
 
 func showUserPosts(rdb *redis.Client, id string, start, count int64) (map[string][]string, error) {
