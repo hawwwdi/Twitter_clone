@@ -37,8 +37,8 @@ func NewDB(addr string) *DB {
 	}
 }
 
-func (d *DB) RegisterUser(usr user) (string, error) {
-	return registerUser(d.rdb, usr)
+func (d *DB) RegisterUser(user, pass string) error {
+	return registerUser(d.rdb, user, pass)
 }
 
 func (d *DB) LogIn(username, password string) (string, error) {
@@ -65,32 +65,30 @@ func (d *DB) GetSessionUserID(session string) (string, error) {
 	return getSessionUserID(d.rdb, session)
 }
 
-func registerUser(rdb *redis.Client, usr user) (string, error) {
+func registerUser(rdb *redis.Client, username, password string) error {
 	var err error
-	_, username, password := usr.Info()
 	exists := checkUsername(rdb, username) != ""
 	if exists {
-		return "", fmt.Errorf("user %v already exists", username)
+		return fmt.Errorf("user %v already exists", username)
 	}
 	lastID, err := rdb.Get(lastIdC).Result()
 	checkErr(err)
 	id := "user:" + lastID
 	err = rdb.HSet(id, usernameC, username).Err()
 	if err != nil {
-		return "", err
+		return err
 	}
 	err = rdb.HSet(id, passwordC, password).Err()
 	if err != nil {
-		return "", err
+		return err
 	}
-	usr.SetId(lastID)
 	err = rdb.HSet(usersMapC, username, lastID).Err()
 	if err != nil {
-		return "", err
+		return err
 	}
 	err = rdb.Incr(lastIdC).Err()
 	checkErr(err)
-	return lastID, nil
+	return nil
 }
 
 func logIn(rdb *redis.Client, username, password string) (string, error) {
