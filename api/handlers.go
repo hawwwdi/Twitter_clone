@@ -90,7 +90,7 @@ func post(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
-func showUserPosts(w http.ResponseWriter, r *http.Request, sp httprouter.Params) {
+func showUserPosts(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	sstart, scount := r.FormValue("start"), r.FormValue("count")
 	start, err := strconv.Atoi(sstart)
 	count, err1 := strconv.Atoi(scount)
@@ -105,7 +105,20 @@ func showUserPosts(w http.ResponseWriter, r *http.Request, sp httprouter.Params)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 	}
 	res, _ := json.Marshal(posts)
-	w.Header()["content-type"] = []string{"application/json"}
+	w.Header()["Content-Type"] = []string{"application/json"}
+	w.Write(res)
+}
+
+func showTimeLinePosts(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	scount := r.FormValue("count")
+	count, err := strconv.Atoi(scount)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
+	}
+	posts, _ := hub.db.ShowTimeLinePosts(count)
+	res, _ := json.Marshal(posts)
+	w.Header()["Content-Type"] = []string{"application/json"}
 	w.Write(res)
 }
 

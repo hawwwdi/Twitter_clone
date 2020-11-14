@@ -35,5 +35,6 @@ func newRouter() *httprouter.Router {
 	mux.GET("/follow/:user", authenticate(follow))
 	mux.POST("/post", authenticate(post))
 	mux.GET("/home", authenticate(showUserPosts))
+	mux.GET("/timeline", authenticate(showTimeLinePosts))
 	return mux
 }
