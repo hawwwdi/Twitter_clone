@@ -14,6 +14,7 @@ var rdb *redis.Client
 
 const (
 	lastIdC   = "last_id"
+	lastPostC = "last_post"
 	usernameC = "username"
 	passwordC = "password"
 	usersMapC = "users"
@@ -27,6 +28,8 @@ func init() {
 	_, err := rdb.Ping().Result()
 	checkErr(err)
 	err = rdb.Set(lastIdC, "0", 0).Err()
+	checkErr(err)
+	err = rdb.Set(lastPostC, "0", 0).Err()
 	checkErr(err)
 }
 
@@ -81,6 +84,16 @@ func LogIn(username, password string) (string, error) {
 	return uuid, nil
 }
 
+func LogOut(session string) error {
+	id, err := IsLoggedIn(session)
+	if err != nil {
+		return err
+	}
+	rdb.HDel("auths", session)
+	rdb.HDel("user:"+id, "auth")
+	return nil
+}
+
 func Follow(follower, followed string) error {
 	var err error
 	currentTime := float64(time.Now().Unix())
@@ -132,6 +145,10 @@ func checkPassword(id, password string) error {
 		return errors.New("invalid password")
 	}
 	return nil
+}
+
+func IsLoggedIn(auth string) (string, error) {
+	return rdb.HGet("auths", auth).Result()
 }
 
 func checkErr(err error) {
