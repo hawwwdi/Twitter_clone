@@ -1,7 +1,9 @@
 package api
 
 import (
+	"encoding/json"
 	"net/http"
+	"strconv"
 
 	"github.com/julienschmidt/httprouter"
 )
@@ -86,6 +88,25 @@ func post(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		return
 	}
 	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
+func showUserPosts(w http.ResponseWriter, r *http.Request, sp httprouter.Params) {
+	sstart, scount := r.FormValue("start"), r.FormValue("count")
+	start, err := strconv.Atoi(sstart)
+	count, err1 := strconv.Atoi(scount)
+	if err != nil || err1 != nil {
+		http.Error(w, "require start and count field", http.StatusBadRequest)
+		return
+	}
+	session, _ := getSession(r)
+	id, _ := hub.db.GetSessionUserID(session)
+	posts, err := hub.db.ShowUserPosts(id, start, count)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+	}
+	res, _ := json.Marshal(posts)
+	w.Header()["content-type"] = []string{"application/json"}
+	w.Write(res)
 }
 
 func getSession(r *http.Request) (string, error) {
