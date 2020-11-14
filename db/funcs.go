@@ -93,6 +93,7 @@ func post(rdb *redis.Client, body, owner string) error {
 	var err error
 	postID, err := rdb.Get(lastPostC).Result()
 	checkErr(err)
+	//log.Printf("user: %v post tweet: %v\npostID==%v\n", owner, body, postID)
 	err = rdb.HSet("post:"+postID, "owner", owner).Err()
 	if err != nil {
 		return err

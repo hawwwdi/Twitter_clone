@@ -14,10 +14,15 @@ func NewDB(addr string) *DB {
 	})
 	_, err := rdb.Ping().Result()
 	checkErr(err)
-	err = rdb.Set(lastIdC, "0", 0).Err()
-	checkErr(err)
-	err = rdb.Set(lastPostC, "0", 0).Err()
-	checkErr(err)
+	if rdb.Get(lastIdC).Err() == redis.Nil {
+		err = rdb.Set(lastIdC, "0", 0).Err()
+		checkErr(err)
+	}
+	if rdb.Get(lastPostC).Err() == redis.Nil {
+		err = rdb.Set(lastPostC, "0", 0).Err()
+		checkErr(err)
+	}
+	_ = rdb.Del("auths")
 	return &DB{
 		rdb: rdb,
 	}
