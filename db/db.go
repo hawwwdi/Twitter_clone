@@ -68,6 +68,7 @@ func LogIn(username, password string) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	removeSession(id)
 	uuid := gouuid.NewV4().String()
 	err = rdb.HSet("user:"+id, "auth", uuid).Err()
 	if err != nil {
@@ -110,6 +111,12 @@ func Post(post, id string) error {
 			return err
 		}
 	}
+	return nil
+}
+
+func removeSession(id string) error {
+	uuid, _ := rdb.HGet("user:"+id, "auth").Result()
+	_, _ = rdb.HDel("auths", uuid).Result()
 	return nil
 }
 
