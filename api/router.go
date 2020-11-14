@@ -33,5 +33,6 @@ func newRouter() *httprouter.Router {
 	mux.POST("/logIn", logIn)
 	mux.GET("/logOut", authenticate(logOut))
 	mux.GET("/follow/:user", authenticate(follow))
+	mux.POST("/post", authenticate(post))
 	return mux
 }

@@ -72,6 +72,22 @@ func follow(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
+func post(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
+	body := r.FormValue("body")
+	if body == "" {
+		http.Error(w, "empty body", http.StatusBadRequest)
+		return
+	}
+	session, _ := getSession(r)
+	owner, _ := hub.db.GetSessionUserID(session)
+	err := hub.db.Post(body, owner)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
 func getSession(r *http.Request) (string, error) {
 	cookie, err := r.Cookie("session")
 	if err != nil {
