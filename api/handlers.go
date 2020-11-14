@@ -55,6 +55,23 @@ func logOut(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
+func follow(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	//todo follow user by username
+	toFollow := ps.ByName("user")
+	if toFollow == "" {
+		http.Error(w, "user id not found", http.StatusBadRequest)
+		return
+	}
+	session, _ := getSession(r)
+	followerID, _ := hub.db.GetSessionUserID(session)
+	err := hub.db.Follow(followerID, toFollow)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/", http.StatusSeeOther)
+}
+
 func getSession(r *http.Request) (string, error) {
 	cookie, err := r.Cookie("session")
 	if err != nil {
@@ -64,7 +81,7 @@ func getSession(r *http.Request) (string, error) {
 }
 
 func authenticate(handler httprouter.Handle) httprouter.Handle {
-	return func(w http.ResponseWriter, r *http.Request, p httprouter.Params) {
+	return func(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		session, err := getSession(r)
 		if session == "" || err != nil {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
@@ -75,6 +92,6 @@ func authenticate(handler httprouter.Handle) httprouter.Handle {
 			http.Error(w, err.Error(), http.StatusUnauthorized)
 			return
 		}
-		handler(w, r, p)
+		handler(w, r, ps)
 	}
 }
