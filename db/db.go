@@ -145,6 +145,31 @@ func Post(body, owner string) error {
 	return err
 }
 
+func showUserPosts(id string, start, count int64) (map[string][]string, error) {
+	//todo add models
+	if checkID(id) != nil {
+		return nil, nil
+	}
+	posts, err := rdb.LRange("posts:"+id, start, start+count).Result()
+	if err != nil {
+		return nil, err
+	}
+	postsMap := make(map[string][]string)
+	for _, post := range posts {
+		owner, body, _ := showPost(post)
+		postsMap[post] = []string{owner, body}
+	}
+	return postsMap, nil
+}
+
+func showPost(postId string) (string, string, error) {
+	post, err := rdb.HGetAll("post:" + postId).Result()
+	if err != nil {
+		return "", "", nil
+	}
+	return post["owner"], post["body"], nil
+}
+
 func removeSession(id string) error {
 	uuid, _ := rdb.HGet("user:"+id, "auth").Result()
 	_, _ = rdb.HDel("auths", uuid).Result()
@@ -154,6 +179,14 @@ func removeSession(id string) error {
 func checkUsername(username string) string {
 	id, _ := rdb.HGet(usersMapC, username).Result()
 	return id
+}
+
+func checkID(id string) error {
+	exists, _ := rdb.HExists("user:"+id, "username").Result()
+	if !exists {
+		return fmt.Errorf("user %v not found", id)
+	}
+	return nil
 }
 
 func checkPassword(id, password string) error {
