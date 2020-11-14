@@ -46,13 +46,19 @@ func logIn(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 }
 
 func logOut(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
-
+	session, _ := getSession(r)
+	err := hub.db.LogOut(session)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
+	http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 func getSession(r *http.Request) (string, error) {
 	cookie, err := r.Cookie("session")
 	if err != nil {
-		return "", nil
+		return "", err
 	}
 	return cookie.Value, nil
 }
