@@ -9,8 +9,9 @@
 5. timeline
 
 ## Dependencies
-1. [go-redis] (https://github.com/go-redis/redis)
-2. [httprouter] (https://github.com/julienschmidt/httprouter)
-3. [go.uuid] (https://github.com/satori/go.uuid)
-
+name     | repo
+------------- | -------------
+  go redis    | https://github.com/go-redis/redis
+  httprouter  | https://github.com/julienschmidt/httprouter
+  go.uuid     | https://github.com/satori/go.uuid 
 
