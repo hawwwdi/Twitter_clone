@@ -2,6 +2,7 @@ package api
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -19,13 +20,16 @@ func signUp(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		http.Error(w, "invalid username or password", http.StatusBadRequest)
 		return
 	}
-	err := hub.db.RegisterUser(username, password)
+	id, err := hub.db.RegisterUser(username, password)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 	log.Printf("  user: %v with password: %v signedUp\n", username, password)
-	http.Redirect(w, r, "/logIn", http.StatusSeeOther)
+	//http.Redirect(w, r, "/logIn", http.StatusSeeOther)
+	w.Header()["Content-Type"] = []string{"application/json"}
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "{\"username\":\"%v\", \"id\":\"%v\"}", username, id)
 }
 
 func logIn(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -46,8 +50,12 @@ func logIn(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		MaxAge: 60 * 60,
 	}
 	http.SetCookie(w, cookie)
+	id, _ := hub.db.GetSessionUserID(uuid)
+	w.Header()["Content-Type"] = []string{"application/json"}
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "{\"username\":\"%v\", \"id\":\"%v\", \"session\":\"%v\"}", username, id, uuid)
 	//http.Redirect(w, r, "/home", http.StatusSeeOther)
-	w.Write([]byte("logged in"))
+	//w.Write([]byte("logged in"))
 }
 
 func logOut(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -59,7 +67,8 @@ func logOut(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 		return
 	}
 	log.Printf("  user: %v loggedOut\n", userID)
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	w.WriteHeader(http.StatusOK)
+	//http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 func follow(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -77,7 +86,14 @@ func follow(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		return
 	}
 	log.Printf("  user: %v stated following user: %v\n", followerID, toFollow)
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	followerUser, _ := hub.db.GetUser(followerID)
+	followedUser, _ := hub.db.GetUser(toFollow)
+	followerJson, _ := json.Marshal(followerUser)
+	followedJson, _ := json.Marshal(followedUser)
+	w.Header()["Content-Type"] = []string{"application/json"}
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "\"follower\":%v, \"followed\":%v", string(followerJson), string(followedJson))
+	//http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 func post(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
@@ -88,13 +104,16 @@ func post(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
 	}
 	session, _ := getSession(r)
 	owner, _ := hub.db.GetSessionUserID(session)
-	err := hub.db.Post(body, owner)
+	postID, err := hub.db.Post(body, owner)
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	log.Printf(" user: %v posted post: %v\n", owner, body)
-	http.Redirect(w, r, "/", http.StatusSeeOther)
+	log.Printf(" user: %v posted post: %v\n", owner, postID)
+	w.Header()["Content-Type"] = []string{"application/json"}
+	w.WriteHeader(http.StatusOK)
+	fmt.Fprintf(w, "{\"post\": {\"id\":\"%v\", \"body\":\"%v\"}}", postID, body)
+	//http.Redirect(w, r, "/", http.StatusSeeOther)
 }
 
 func showUserPosts(w http.ResponseWriter, r *http.Request, _ httprouter.Params) {
