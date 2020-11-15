@@ -8,6 +8,6 @@ type DB interface {
 	Post(body, owner string) (string, error)
 	ShowTimeLinePosts(count int) (map[string][]string, error)
 	ShowUserPosts(id string, start, count int) (map[string][]string, error)
-	GetUser(id string) (map[string]interface{}, error)
+	GetUser(id string) (map[string]string, error)
 	GetSessionUserID(session string) (string, error)
 }

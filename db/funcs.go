@@ -163,14 +163,15 @@ func showPost(rdb *redis.Client, postId string) (string, string, error) {
 	return post["owner"], post["body"], nil
 }
 
-func getUser(rdb *redis.Client, id string) (map[string]interface{}, error) {
+func getUser(rdb *redis.Client, id string) (map[string]string, error) {
 	user, err := rdb.HGetAll("user:" + id).Result()
 	if err != nil {
 		return nil, err
 	}
-	userMap := make(map[string]interface{})
-	userMap[id] = user
-	return userMap, nil
+	delete(user, "auth")
+	delete(user, "password")
+	user["id"] = id
+	return user, nil
 }
 
 func getSessionUserID(rdb *redis.Client, auth string) (string, error) {

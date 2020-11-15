@@ -56,7 +56,7 @@ func (d *DB) ShowUserPosts(id string, start, count int) (map[string][]string, er
 	return showUserPosts(d.rdb, id, int64(start), int64(count))
 }
 
-func (d *DB) GetUser(id string) (map[string]interface{}, error) {
+func (d *DB) GetUser(id string) (map[string]string, error) {
 	return getUser(d.rdb, id)
 }
 
