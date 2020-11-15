@@ -18,30 +18,30 @@ const (
 	usersMapC = "users"
 )
 
-func registerUser(rdb *redis.Client, username, password string) error {
+func registerUser(rdb *redis.Client, username, password string) (string, error) {
 	var err error
 	exists := checkUsername(rdb, username) != ""
 	if exists {
-		return fmt.Errorf("user %v already exists", username)
+		return "", fmt.Errorf("user %v already exists", username)
 	}
 	lastID, err := rdb.Get(lastIdC).Result()
 	checkErr(err)
 	id := "user:" + lastID
 	err = rdb.HSet(id, usernameC, username).Err()
 	if err != nil {
-		return err
+		return "", err
 	}
 	err = rdb.HSet(id, passwordC, password).Err()
 	if err != nil {
-		return err
+		return "", err
 	}
 	err = rdb.HSet(usersMapC, username, lastID).Err()
 	if err != nil {
-		return err
+		return "", err
 	}
 	err = rdb.Incr(lastIdC).Err()
 	checkErr(err)
-	return nil
+	return lastID, nil
 }
 
 func logIn(rdb *redis.Client, username, password string) (string, error) {
@@ -161,6 +161,16 @@ func showPost(rdb *redis.Client, postId string) (string, string, error) {
 		return "", "", nil
 	}
 	return post["owner"], post["body"], nil
+}
+
+func getUser(rdb *redis.Client, id string) (map[string]interface{}, error) {
+	user, err := rdb.HGetAll("user:" + id).Result()
+	if err != nil {
+		return nil, err
+	}
+	userMap := make(map[string]interface{})
+	userMap[id] = user
+	return userMap, nil
 }
 
 func getSessionUserID(rdb *redis.Client, auth string) (string, error) {

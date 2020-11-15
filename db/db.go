@@ -28,7 +28,7 @@ func NewDB(addr string) *DB {
 	}
 }
 
-func (d *DB) RegisterUser(user, pass string) error {
+func (d *DB) RegisterUser(user, pass string) (string, error) {
 	return registerUser(d.rdb, user, pass)
 }
 
@@ -54,6 +54,10 @@ func (d *DB) ShowTimeLinePosts(count int) (map[string][]string, error) {
 
 func (d *DB) ShowUserPosts(id string, start, count int) (map[string][]string, error) {
 	return showUserPosts(d.rdb, id, int64(start), int64(count))
+}
+
+func (d *DB) GetUser(id string) (map[string]interface{}, error) {
+	return getUser(d.rdb, id)
 }
 
 func (d *DB) GetSessionUserID(session string) (string, error) {
