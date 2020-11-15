@@ -124,21 +124,20 @@ func post(rdb *redis.Client, body, owner string) (string, error) {
 	return postID, err
 }
 
-func showTimeLinePosts(rdb *redis.Client, count int64) (map[string][]string, error) {
+func showTimeLinePosts(rdb *redis.Client, count int64) (map[string]interface{}, error) {
 	posts, err := rdb.LRange("timeline", 0, count).Result()
 	if err != nil {
 		return nil, err
 	}
-
-	postsMap := make(map[string][]string)
+	postsMap := make(map[string]interface{})
 	for _, post := range posts {
-		owner, body, _ := showPost(rdb, post)
-		postsMap[post] = []string{owner, body}
+		pmap, _ := showPost(rdb, post)
+		postsMap[post] = pmap
 	}
 	return postsMap, nil
 }
 
-func showUserPosts(rdb *redis.Client, id string, start, count int64) (map[string][]string, error) {
+func showUserPosts(rdb *redis.Client, id string, start, count int64) (map[string]interface{}, error) {
 	//todo add models
 	if checkID(rdb, id) != nil {
 		return nil, nil
@@ -147,20 +146,20 @@ func showUserPosts(rdb *redis.Client, id string, start, count int64) (map[string
 	if err != nil {
 		return nil, err
 	}
-	postsMap := make(map[string][]string)
+	postsMap := make(map[string]interface{})
 	for _, post := range posts {
-		owner, body, _ := showPost(rdb, post)
-		postsMap[post] = []string{owner, body}
+		pmap, _ := showPost(rdb, post)
+		postsMap[post] = pmap
 	}
 	return postsMap, nil
 }
 
-func showPost(rdb *redis.Client, postId string) (string, string, error) {
+func showPost(rdb *redis.Client, postId string) (map[string]string, error) {
 	post, err := rdb.HGetAll("post:" + postId).Result()
 	if err != nil {
-		return "", "", nil
+		return nil, nil
 	}
-	return post["owner"], post["body"], nil
+	return post, nil
 }
 
 func getUser(rdb *redis.Client, id string) (map[string]string, error) {

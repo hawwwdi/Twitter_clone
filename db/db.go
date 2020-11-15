@@ -48,11 +48,11 @@ func (d *DB) Post(body, owner string) (string, error) {
 	return post(d.rdb, body, owner)
 }
 
-func (d *DB) ShowTimeLinePosts(count int) (map[string][]string, error) {
+func (d *DB) ShowTimeLinePosts(count int) (map[string]interface{}, error) {
 	return showTimeLinePosts(d.rdb, int64(count))
 }
 
-func (d *DB) ShowUserPosts(id string, start, count int) (map[string][]string, error) {
+func (d *DB) ShowUserPosts(id string, start, count int) (map[string]interface{}, error) {
 	return showUserPosts(d.rdb, id, int64(start), int64(count))
 }
 
