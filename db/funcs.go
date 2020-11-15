@@ -89,18 +89,18 @@ func follow(rdb *redis.Client, follower, followed string) error {
 	return err
 }
 
-func post(rdb *redis.Client, body, owner string) error {
+func post(rdb *redis.Client, body, owner string) (string, error) {
 	var err error
 	postID, err := rdb.Get(lastPostC).Result()
 	checkErr(err)
 	//log.Printf("user: %v post tweet: %v\npostID==%v\n", owner, body, postID)
 	err = rdb.HSet("post:"+postID, "owner", owner).Err()
 	if err != nil {
-		return err
+		return "", err
 	}
 	err = rdb.HSet("post:"+postID, "body", body).Err()
 	if err != nil {
-		return err
+		return "", err
 	}
 	err = rdb.Incr(lastPostC).Err()
 	checkErr(err)
@@ -108,20 +108,20 @@ func post(rdb *redis.Client, body, owner string) error {
 	//todo use concurrent pattern
 	followers, err := rdb.ZRevRange("followers:"+owner, 0, -1).Result()
 	if err != nil {
-		return err
+		return "", err
 	}
 	for _, follower := range followers {
 		_, err = rdb.LPush("posts:"+follower, postID).Result()
 		if err != nil {
-			return err
+			return "", err
 		}
 	}
 	err = rdb.LPush("timeline", postID).Err()
 	if err != nil {
-		return err
+		return "", err
 	}
 	err = rdb.LTrim("timeline", 0, 100).Err()
-	return err
+	return postID, err
 }
 
 func showTimeLinePosts(rdb *redis.Client, count int64) (map[string][]string, error) {

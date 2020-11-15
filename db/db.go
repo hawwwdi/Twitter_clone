@@ -44,7 +44,7 @@ func (d *DB) Follow(follower, followed string) error {
 	return follow(d.rdb, follower, followed)
 }
 
-func (d *DB) Post(body, owner string) error {
+func (d *DB) Post(body, owner string) (string, error) {
 	return post(d.rdb, body, owner)
 }
 
