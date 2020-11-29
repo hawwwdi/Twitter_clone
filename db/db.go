@@ -2,6 +2,7 @@ package db
 
 import (
 	"github.com/go-redis/redis"
+	"github.com/hawwwdi/Twitter_clone/model"
 )
 
 type DB struct {
@@ -44,11 +45,11 @@ func (d *DB) Follow(follower, followed string) error {
 	return follow(d.rdb, follower, followed)
 }
 
-func (d *DB) Post(body, owner string) (string, error) {
-	return post(d.rdb, body, owner)
+func (d *DB) Post(postObj model.Post) (string, error) {
+	return post(d.rdb, postObj)
 }
 
-func (d *DB) ShowTimeLinePosts(count int) (map[string]interface{}, error) {
+func (d *DB) ShowTimeLinePosts(count int) ([]*model.Post, error) {
 	return showTimeLinePosts(d.rdb, int64(count))
 }
 

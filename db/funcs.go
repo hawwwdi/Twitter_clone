@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/go-redis/redis"
+	"github.com/hawwwdi/Twitter_clone/model"
 	gouuid "github.com/satori/go.uuid"
 )
 
@@ -89,77 +90,78 @@ func follow(rdb *redis.Client, follower, followed string) error {
 	return err
 }
 
-func post(rdb *redis.Client, body, owner string) (string, error) {
+func post(rdb *redis.Client, post *model.Post) (string, error) {
 	var err error
-	postID, err := rdb.Get(lastPostC).Result()
+	post.ID, err = rdb.Get(lastPostC).Result()
 	checkErr(err)
 	//log.Printf("user: %v post tweet: %v\npostID==%v\n", owner, body, postID)
-	err = rdb.HSet("post:"+postID, "owner", owner).Err()
+	err = rdb.HSet("post:"+post.ID, "owner", post.Owner).Err()
 	if err != nil {
 		return "", err
 	}
-	err = rdb.HSet("post:"+postID, "body", body).Err()
+	err = rdb.HSet("post:"+post.ID, "body", post.Body).Err()
 	if err != nil {
 		return "", err
 	}
 	err = rdb.Incr(lastPostC).Err()
 	checkErr(err)
-	_, err = rdb.LPush("posts:"+owner, postID).Result()
+	_, err = rdb.LPush("posts:"+post.Owner, post.ID).Result()
 	//todo use concurrent pattern
-	followers, err := rdb.ZRevRange("followers:"+owner, 0, -1).Result()
+	followers, err := rdb.ZRevRange("followers:"+post.Owner, 0, -1).Result()
 	if err != nil {
 		return "", err
 	}
 	for _, follower := range followers {
-		_, err = rdb.LPush("posts:"+follower, postID).Result()
+		_, err = rdb.LPush("posts:"+follower, post.ID).Result()
 		if err != nil {
 			return "", err
 		}
 	}
-	err = rdb.LPush("timeline", postID).Err()
+	err = rdb.LPush("timeline", post.ID).Err()
 	if err != nil {
 		return "", err
 	}
 	err = rdb.LTrim("timeline", 0, 100).Err()
-	return postID, err
+	return post.ID, err
 }
 
-func showTimeLinePosts(rdb *redis.Client, count int64) (map[string]interface{}, error) {
+func showTimeLinePosts(rdb *redis.Client, count int64) ([]*model.Post, error) {
 	posts, err := rdb.LRange("timeline", 0, count).Result()
 	if err != nil {
 		return nil, err
 	}
-	postsMap := make(map[string]interface{})
-	for _, post := range posts {
-		pmap, _ := showPost(rdb, post)
-		postsMap[post] = pmap
+	postObjs := make([]*model.Post, len(posts))
+	for i, post := range posts {
+		postObj, _ := showPost(rdb, post)
+		postObjs[i] = postObj
 	}
-	return postsMap, nil
+	return postObjs, nil
 }
 
-func showUserPosts(rdb *redis.Client, id string, start, count int64) (map[string]interface{}, error) {
+func showUserPosts(rdb *redis.Client, id string, start, count int64) ([]*model.Post, error) {
 	//todo add models
 	if checkID(rdb, id) != nil {
-		return nil, nil
+		return nil, errors.New("user not found")
 	}
 	posts, err := rdb.LRange("posts:"+id, start, start+count).Result()
 	if err != nil {
 		return nil, err
 	}
-	postsMap := make(map[string]interface{})
-	for _, post := range posts {
-		pmap, _ := showPost(rdb, post)
-		postsMap[post] = pmap
+	postObjs := make([]*model.Post, len(posts))
+	for i, post := range posts {
+		postObj, _ := showPost(rdb, post)
+		postObjs[i] = postObj
 	}
-	return postsMap, nil
+	return postObjs, nil
 }
 
-func showPost(rdb *redis.Client, postId string) (map[string]string, error) {
+func showPost(rdb *redis.Client, postId string) (*model.Post, error) {
 	post, err := rdb.HGetAll("post:" + postId).Result()
 	if err != nil {
-		return nil, nil
+		return nil, err
 	}
-	return post, nil
+	postObj := model.NewPost(post["id"], post["body"], post["owner"])
+	return postObj, nil
 }
 
 func getUser(rdb *redis.Client, id string) (map[string]string, error) {
