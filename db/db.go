@@ -45,15 +45,15 @@ func (d *DB) Follow(follower, followed string) error {
 	return follow(d.rdb, follower, followed)
 }
 
-func (d *DB) Post(postObj model.Post) (string, error) {
-	return post(d.rdb, postObj)
+func (d *DB) Post(body, owner string) (*model.Post, error) {
+	return post(d.rdb, body, owner)
 }
 
 func (d *DB) ShowTimeLinePosts(count int) ([]*model.Post, error) {
 	return showTimeLinePosts(d.rdb, int64(count))
 }
 
-func (d *DB) ShowUserPosts(id string, start, count int) (map[string]interface{}, error) {
+func (d *DB) ShowUserPosts(id string, start, count int) ([]*model.Post, error) {
 	return showUserPosts(d.rdb, id, int64(start), int64(count))
 }
 

@@ -90,39 +90,39 @@ func follow(rdb *redis.Client, follower, followed string) error {
 	return err
 }
 
-func post(rdb *redis.Client, post *model.Post) (string, error) {
+func post(rdb *redis.Client, body, owner string) (*model.Post, error) {
 	var err error
-	post.ID, err = rdb.Get(lastPostC).Result()
+	ID, err := rdb.Get(lastPostC).Result()
 	checkErr(err)
 	//log.Printf("user: %v post tweet: %v\npostID==%v\n", owner, body, postID)
-	err = rdb.HSet("post:"+post.ID, "owner", post.Owner).Err()
+	err = rdb.HSet("post:"+ID, "owner", owner).Err()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
-	err = rdb.HSet("post:"+post.ID, "body", post.Body).Err()
+	err = rdb.HSet("post:"+ID, "body", body).Err()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	err = rdb.Incr(lastPostC).Err()
 	checkErr(err)
-	_, err = rdb.LPush("posts:"+post.Owner, post.ID).Result()
+	_, err = rdb.LPush("posts:"+owner, ID).Result()
 	//todo use concurrent pattern
-	followers, err := rdb.ZRevRange("followers:"+post.Owner, 0, -1).Result()
+	followers, err := rdb.ZRevRange("followers:"+owner, 0, -1).Result()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	for _, follower := range followers {
-		_, err = rdb.LPush("posts:"+follower, post.ID).Result()
+		_, err = rdb.LPush("posts:"+follower, ID).Result()
 		if err != nil {
-			return "", err
+			return nil, err
 		}
 	}
-	err = rdb.LPush("timeline", post.ID).Err()
+	err = rdb.LPush("timeline", ID).Err()
 	if err != nil {
-		return "", err
+		return nil, err
 	}
 	err = rdb.LTrim("timeline", 0, 100).Err()
-	return post.ID, err
+	return model.NewPost(ID, body, owner), err
 }
 
 func showTimeLinePosts(rdb *redis.Client, count int64) ([]*model.Post, error) {
